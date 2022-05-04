@@ -1,0 +1,105 @@
+<html>
+    <head>
+        <title>Video/DHUD Demo </title> 
+    <script> 
+    document.addEventListener('DOMContentLoaded', function(){
+        var v = document.getElementById('v');
+        var canvas = document.getElementById('c');
+        var context = canvas.getContext('2d');
+        var back = document.createElement('canvas');
+        var backcontext = back.getContext('2d');
+     
+        var cw,ch;
+     
+        v.addEventListener('play', function(){
+            cw = v.clientWidth;
+            ch = v.clientHeight;
+            canvas.width = cw;
+            canvas.height = ch;
+            back.width = cw;
+            back.height = ch;
+            drawCanvas(v,context,backcontext,cw,ch);
+            
+        },false);
+     
+    },false);
+
+    function drawCanvas(v,c,bc,w,h) {
+        if(v.paused || v.ended)	return false;
+        // First, draw it into the backing canvas
+        bc.drawImage(v,0,0,w,h);
+        // Grab the pixel data from the backing canvas
+        var idata = bc.getImageData(0,0,w,h);
+        var data = idata.data;
+        // Loop through the pixels, turning them grayscale
+        gradient_internal(idata, [1, 2, 1]); // Apply Sobel operator
+        //context.putImageData(pixels, 0, 0);
+
+        idata.data = data;
+        // Draw the pixels onto the visible canvas
+        c.putImageData(idata,0,0);
+        // Start over!
+        setTimeout(drawCanvas,20,v,c,bc,w,h);
+    }
+
+    function conv3x(data, idx, w, m){
+    return (m[0]*data[idx - w - 4] + m[1]*data[idx - 4] + m[2]*data[idx + w - 4]
+        -m[0]*data[idx - w + 4] - m[1]*data[idx + 4] - m[2]*data[idx + 4 + 4]);
+    }
+
+    function conv3y(data, idx, w, m){
+    return (m[0]*data[idx - w - 4] + m[1]*data[idx - w] + m[2]*data[idx - w + 4]
+      -(m[0]*data[idx + w - 4] + m[1]*data[idx + w] + m[2]*data[idx + w + 4]));
+    }
+
+    function gradient_internal(pixels, mask)
+    {
+    var data = pixels.data;
+    var w = pixels.width*4;
+    var l = data.length - w - 4;
+    var buff = new data.constructor(new ArrayBuffer(data.length));
+    
+    for (var i = w + 4; i < l; i+=4){
+        var dx = conv3x(data, i, w, mask);
+        var dy = conv3y(data, i, w, mask);
+        buff[i] = buff[i + 1] = buff[i + 2] = Math.sqrt(dx*dx + dy*dy);
+        buff[i + 3] = 255;
+    }
+    pixels.data.set(buff);
+    }
+
+    </script> 
+     
+    
+     
+    </head>
+    <body>
+        <video  id="v" controls="" loop=""> 
+        <source src="video.webm" type="video/webm"> 
+        <source src="video.ogg" type="video/ogg"> 
+        <source src="video.mp4"  type="video/mp4">
+        </video> 
+    <canvas id="c" width="15" height="7"></canvas> 
+     
+    <style> 
+    #c {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        margin: -180px 0 0 20px;
+    }
+     
+    #v {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        margin: -180px 0 0 -500px;
+    }
+
+    video{
+        height: 250px;
+    }
+
+    </style>
+     </body>
+     </html>
